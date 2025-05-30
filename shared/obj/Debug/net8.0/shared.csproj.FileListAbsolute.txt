@@ -1,0 +1,11 @@
+/home/wcz/repo/hickey/shared/bin/Debug/net8.0/shared.deps.json
+/home/wcz/repo/hickey/shared/bin/Debug/net8.0/shared.dll
+/home/wcz/repo/hickey/shared/bin/Debug/net8.0/shared.pdb
+/home/wcz/repo/hickey/shared/obj/Debug/net8.0/shared.GeneratedMSBuildEditorConfig.editorconfig
+/home/wcz/repo/hickey/shared/obj/Debug/net8.0/shared.AssemblyInfoInputs.cache
+/home/wcz/repo/hickey/shared/obj/Debug/net8.0/shared.AssemblyInfo.cs
+/home/wcz/repo/hickey/shared/obj/Debug/net8.0/shared.csproj.CoreCompileInputs.cache
+/home/wcz/repo/hickey/shared/obj/Debug/net8.0/shared.dll
+/home/wcz/repo/hickey/shared/obj/Debug/net8.0/refint/shared.dll
+/home/wcz/repo/hickey/shared/obj/Debug/net8.0/shared.pdb
+/home/wcz/repo/hickey/shared/obj/Debug/net8.0/ref/shared.dll
