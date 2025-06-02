@@ -31,9 +31,32 @@ var summaries = new[]
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
 
+app.MapGet("/status", async (IDeviceService deviceService) =>
+{
+  return await deviceService.GetAllDeviceStatuses();
+});
+
 app.MapGet("/status/{id}", async ([FromRoute] uint id, IDeviceService deviceService) =>
 {
-  return await deviceService.GetDeviceStatus(id);
+  var result = await deviceService.GetDeviceStatus(id);
+
+  return result is not null
+    ? Results.Ok(result)
+    : Results.NotFound("No device with such id.");
+});
+
+app.MapPut("/reboot", async (IDeviceService deviceService) =>
+{
+  return await deviceService.RebootAllDevices();
+});
+
+app.MapPut("/reboot/{id}", async ([FromRoute] uint id, IDeviceService deviceService) =>
+{
+  var result = await deviceService.RebootDevice(id);
+
+  return result is not null
+    ? Results.Ok(result)
+    : Results.NotFound("No device with such id.");
 });
 
 app.MapGet("/weatherforecast", () =>

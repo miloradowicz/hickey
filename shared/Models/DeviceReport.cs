@@ -1,8 +1,7 @@
 namespace shared.Models;
 
-public record struct DeviceReport(
-  string? Name,
+public record class DeviceReport(
+  string Name,
   DeviceStatus Status,
-  DateTime? LastReboot,
   ulong? Uptime
 );

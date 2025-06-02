@@ -3,7 +3,7 @@ using shared.Models;
 using System.Net;
 using System.Xml.Serialization;
 using Microsoft.EntityFrameworkCore;
-using api.Exceptions;
+using Microsoft.AspNetCore.Mvc;
 
 namespace api.Services;
 
@@ -14,41 +14,136 @@ internal partial class DeviceService(
 {
   private readonly ApiContext context = context;
   private readonly IDeviceClientFactory clientFactory = clientFactory;
+  private readonly XmlSerializer serializer = new(typeof(Responses.StatusResponse));
 
-  public Task<DeviceReport[]> GetAllDeviceStatuses()
+  private async Task<DeviceReport> RequestDeviceStatus(Device device)
   {
-    throw new NotImplementedException();
-  }
-
-  public async Task<DeviceReport> GetDeviceStatus(uint id)
-  {
-    var device = await this.context.Devices.FirstAsync(x => x.Id == id) ?? throw new DeviceNotFoundException();
-
     using var client = this.clientFactory.Create(device);
 
-    var response = await client.GetAsync(Endpoint.Status);
-
-    if (response.StatusCode == HttpStatusCode.OK)
+    try
     {
-      var serializer = new XmlSerializer(typeof(Responses.StatusResponse));
+      var result = await client.GetAsync(Endpoint.Status);
 
-      var statusResponse = serializer.Deserialize(await response.Content.ReadAsStreamAsync()) as Responses.StatusResponse ?? throw new InvalidResponseException();
+      if (result.StatusCode == HttpStatusCode.OK)
+      {
+        var response = this.serializer.Deserialize(await result.Content.ReadAsStreamAsync()) as Responses.StatusResponse;
 
-      return new DeviceReport(device.Name, DeviceStatus.Up, device.LastReboot, statusResponse.DeviceUptime);
+        return response is not null
+          ? new DeviceReport(device.Name, DeviceStatus.Up, response.DeviceUptime)
+          : new DeviceReport(device.Name, DeviceStatus.CommunicationFailed, null);
+      }
+      else if (result.StatusCode == HttpStatusCode.Unauthorized)
+      {
+        return new DeviceReport(device.Name, DeviceStatus.Denied, null);
+      }
+      else
+      {
+        return new DeviceReport(device.Name, DeviceStatus.CommunicationFailed, null); ;
+      }
     }
-    else
+    catch (InvalidOperationException)
     {
-      return new DeviceReport(device.Name, DeviceStatus.Unknown, device.LastReboot, null);
+      return new DeviceReport(device.Name, DeviceStatus.CommunicationFailed, null);
+    }
+    catch (HttpRequestException)
+    {
+      return new DeviceReport(device.Name, DeviceStatus.Down, null);
     }
   }
 
-  public Task<DeviceReport[]> RebootAllDevices()
+  private async Task<DeviceReport> RequestDeviceReboot(Device device)
   {
-    throw new NotImplementedException();
+    using var client = this.clientFactory.Create(device);
+
+    try
+    {
+      var result = await client.PutAsync(Endpoint.Reboot, null);
+
+      if (result.StatusCode == HttpStatusCode.OK)
+      {
+        var response = this.serializer.Deserialize(await result.Content.ReadAsStreamAsync()) as Responses.Response;
+
+        return response is not null
+          ? new DeviceReport(device.Name, DeviceStatus.RebootPending, null)
+          : new DeviceReport(device.Name, DeviceStatus.CommunicationFailed, null);
+      }
+      else if (result.StatusCode == HttpStatusCode.Unauthorized)
+      {
+        return new DeviceReport(device.Name, DeviceStatus.Denied, null);
+      }
+      else
+      {
+        return new DeviceReport(device.Name, DeviceStatus.CommunicationFailed, null); ;
+      }
+    }
+    catch (InvalidOperationException)
+    {
+      return new DeviceReport(device.Name, DeviceStatus.CommunicationFailed, null);
+    }
+    catch (HttpRequestException)
+    {
+      return new DeviceReport(device.Name, DeviceStatus.Down, null);
+    }
   }
 
-  public Task<DeviceReport> RebootDevice(uint id)
+  public async Task<DeviceReport?> GetDeviceStatus(uint id)
   {
-    throw new NotImplementedException();
+    var device = await this.context.Devices.FirstOrDefaultAsync(x => x.Id == id);
+
+    if (device is null)
+    {
+      return null;
+    }
+
+    return await this.RequestDeviceStatus(device);
+  }
+
+  public async Task<DeviceReport?> RebootDevice(uint id)
+  {
+    var device = await this.context.Devices.FirstOrDefaultAsync(x => x.Id == id);
+
+    if (device is null)
+    {
+      return null;
+    }
+
+    var status = await this.RequestDeviceStatus(device);
+
+    return status.Status == DeviceStatus.Up
+      ? await this.RequestDeviceReboot(device)
+      : status;
+  }
+
+  public async Task<DeviceReport[]> GetAllDeviceStatuses()
+  {
+    List<Task<DeviceReport>> requests = [];
+
+    foreach (var device in this.context.Devices)
+    {
+      requests.Add(this.RequestDeviceStatus(device));
+    }
+
+    return await Task.WhenAll(requests);
+  }
+
+  public async Task<DeviceReport[]> RebootAllDevices()
+  {
+    List<Task<DeviceReport>> requests = [];
+
+    foreach (var device in this.context.Devices)
+    {
+      async Task<DeviceReport> request()
+      {
+        var status = await this.RequestDeviceStatus(device);
+
+        return status.Status == DeviceStatus.Up
+          ? await this.RequestDeviceReboot(device)
+          : status;
+      }
+
+      requests.Add(request());
+    }
+
+    return await Task.WhenAll(requests);
   }
 }

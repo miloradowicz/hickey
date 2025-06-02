@@ -1,4 +1,5 @@
 using bot.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -23,22 +24,28 @@ if (app.Environment.IsDevelopment())
   app.UseSwaggerUI();
 }
 
+app.Urls.Add("https://localhost:5120");
 app.UseHttpsRedirection();
 
+app.MapGet("/test", OnTest);
 app.MapGet("/set-hook", OnSetHook);
-
 app.MapPost("/on-update", OnUpdate);
 
 app.Run();
 
-async Task<string> OnSetHook(ITelegramBotClient bot)
+string OnTest()
+{
+  return "It works.";
+}
+
+async Task<string> OnSetHook([FromServices] ITelegramBotClient bot)
 {
   await bot.SetWebhook(configuration.WebHookUrl);
 
   return $"Webhook set to {configuration.WebHookUrl}";
 }
 
-async void OnUpdate(ITelegramBotClient bot, Update update)
+async void OnUpdate([FromBody] Update update, [FromServices] ITelegramBotClient bot)
 {
   if (update.Message is null) return;
   if (update.Message.Text is null) return;

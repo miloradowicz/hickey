@@ -9,5 +9,4 @@ internal class Device
   public ushort Port { get; init; }
   public string Username { get; init; }
   public string Password { get; init; }
-  public DateTime? LastReboot { get; init; }
 }

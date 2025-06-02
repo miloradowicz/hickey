@@ -7,8 +7,8 @@ public class StatusResponse
 {
 
   [XmlElement(ElementName = "currentDeviceTime")]
-  public DateTime DeviceTime { get; set; }
+  public required DateTime DeviceTime { get; init; }
 
   [XmlElement(ElementName = "deviceUpTime")]
-  public ulong DeviceUptime { get; set; }
+  public required ulong DeviceUptime { get; init; }
 }

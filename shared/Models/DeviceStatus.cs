@@ -4,5 +4,7 @@ public enum DeviceStatus
 {
   Up,
   Down,
-  Unknown,
+  RebootPending,
+  Denied,
+  CommunicationFailed,
 }
