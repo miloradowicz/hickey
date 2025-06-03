@@ -1,14 +1,18 @@
 using bot.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var configuration = builder.Configuration.GetRequiredSection("Bot").Get<BotConfiguration>()!;
+var botConfig = builder.Configuration.GetRequiredSection("Bot").Get<BotConfiguration>()!;
+var apiConfig = builder.Configuration.GetRequiredSection("Api").Get<ApiConfiguration>()!;
 
-builder.Services.AddHttpClient("tgwebhook").AddTypedClient(httpClient => new TelegramBotClient(configuration.Token, httpClient));
+builder.Services.AddHttpClient("tg-bot").AddTypedClient(httpClient => new TelegramBotClient(botConfig.Token, httpClient));
+builder.Services.AddHttpClient("api-client").ConfigureHttpClient((httpClient) =>
+{
+  httpClient.BaseAddress = apiConfig.Url;
+});
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -24,25 +28,27 @@ if (app.Environment.IsDevelopment())
   app.UseSwaggerUI();
 }
 
-app.Urls.Add("https://localhost:5120");
+// app.Urls.Add("http://localhost:80");
+// app.Urls.Add("http://localhost:88");
+// app.Urls.Add("https://localhost:443");
+// app.Urls.Add("https://localhost:8443");
 app.UseHttpsRedirection();
 
-app.MapGet("/test", OnTest);
 app.MapGet("/set-hook", OnSetHook);
 app.MapPost("/on-update", OnUpdate);
 
 app.Run();
 
-string OnTest()
-{
-  return "It works.";
-}
-
 async Task<string> OnSetHook([FromServices] ITelegramBotClient bot)
 {
-  await bot.SetWebhook(configuration.WebHookUrl);
+  if (botConfig.WebHookUrl is not null)
+  {
+    await bot.SetWebhook(botConfig.WebHookUrl);
 
-  return $"Webhook set to {configuration.WebHookUrl}";
+    return $"Webhook has been updated to {botConfig.WebHookUrl}";
+  }
+
+  return "Webhook has not been updated.";
 }
 
 async void OnUpdate([FromBody] Update update, [FromServices] ITelegramBotClient bot)

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using api.Models;
 using api.Services;
 using Microsoft.AspNetCore.Mvc;
+using shared.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,12 +32,12 @@ var summaries = new[]
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
 
-app.MapGet("/status", async (IDeviceService deviceService) =>
+app.MapGet($"/{ApiEndpoint.Status}", async (IDeviceService deviceService) =>
 {
   return await deviceService.GetAllDeviceStatuses();
 });
 
-app.MapGet("/status/{id}", async ([FromRoute] uint id, IDeviceService deviceService) =>
+app.MapGet($"/{ApiEndpoint.Status}/{{id}}", async ([FromRoute] uint id, IDeviceService deviceService) =>
 {
   var result = await deviceService.GetDeviceStatus(id);
 
@@ -45,12 +46,12 @@ app.MapGet("/status/{id}", async ([FromRoute] uint id, IDeviceService deviceServ
     : Results.NotFound("No device with such id.");
 });
 
-app.MapPut("/reboot", async (IDeviceService deviceService) =>
+app.MapPut($"/{ApiEndpoint.Reboot}", async (IDeviceService deviceService) =>
 {
   return await deviceService.RebootAllDevices();
 });
 
-app.MapPut("/reboot/{id}", async ([FromRoute] uint id, IDeviceService deviceService) =>
+app.MapPut($"/{ApiEndpoint.Reboot}/{{id}}", async ([FromRoute] uint id, IDeviceService deviceService) =>
 {
   var result = await deviceService.RebootDevice(id);
 

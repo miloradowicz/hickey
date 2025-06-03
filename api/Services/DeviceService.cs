@@ -1,9 +1,9 @@
-using api.Models;
-using shared.Models;
 using System.Net;
 using System.Xml.Serialization;
+using api.Models;
+using shared.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Mvc;
+using api.Endpoints;
 
 namespace api.Services;
 
@@ -22,7 +22,7 @@ internal partial class DeviceService(
 
     try
     {
-      var result = await client.GetAsync(Endpoint.Status);
+      var result = await client.GetAsync(HikvisionEndpoint.Status);
 
       if (result.StatusCode == HttpStatusCode.OK)
       {
@@ -57,7 +57,7 @@ internal partial class DeviceService(
 
     try
     {
-      var result = await client.PutAsync(Endpoint.Reboot, null);
+      var result = await client.PutAsync(HikvisionEndpoint.Reboot, null);
 
       if (result.StatusCode == HttpStatusCode.OK)
       {

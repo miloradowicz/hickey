@@ -14,6 +14,3 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
     volumes:
       - ~/.vsdbg:/remote_debugger:rw
-      - 
-  proxy:
-    image: nginx
