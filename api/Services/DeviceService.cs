@@ -86,7 +86,7 @@ internal partial class DeviceService(
     }
   }
 
-  public async Task<DeviceReport?> GetDeviceStatus(uint id)
+  public async Task<DeviceReport> GetDeviceStatus(uint id)
   {
     var device = await this.context.Devices.FirstOrDefaultAsync(x => x.Id == id);
 
@@ -98,7 +98,7 @@ internal partial class DeviceService(
     return await this.RequestDeviceStatus(device);
   }
 
-  public async Task<DeviceReport?> RebootDevice(uint id)
+  public async Task<DeviceReport> RebootDevice(uint id)
   {
     var device = await this.context.Devices.FirstOrDefaultAsync(x => x.Id == id);
 
@@ -145,5 +145,13 @@ internal partial class DeviceService(
     }
 
     return await Task.WhenAll(requests);
+  }
+
+  public async Task<OperationReport> AddDevice(DeviceBase device)
+  {
+    if (await this.context.Devices.FirstOrDefaultAsync(x => x.Address == device.Address && x.Port == device.Port) is not null)
+    {
+      return new OperationReport(OperationResult.Failed, device);
+    }
   }
 }

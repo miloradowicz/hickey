@@ -11,8 +11,8 @@ internal class DeviceClientFactory : IDeviceClientFactory
     {
       Credentials = new NetworkCredential()
       {
-        UserName = device.Username,
-        Password = device.Password,
+        UserName = device.Credentials.Username,
+        Password = device.Credentials.Password,
       }
     })
     {

@@ -1,7 +1,6 @@
 namespace shared.Models;
 
-public record class DeviceReport(
-  string Name,
+public record class DeviceStatusReport(
   DeviceStatus Status,
   ulong? Uptime
 );

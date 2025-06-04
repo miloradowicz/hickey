@@ -1,12 +1,9 @@
+using shared.Models;
+
 namespace api.Models;
 
-#nullable disable
-internal class Device
+internal class Device : DeviceBase
 {
-  public uint Id { get; init; }
-  public string Name { get; init; }
-  public string Address { get; init; }
-  public ushort Port { get; init; }
-  public string Username { get; init; }
-  public string Password { get; init; }
+  public required uint Id { get; init; }
+  public required Credentials Credentials { get; init; }
 }

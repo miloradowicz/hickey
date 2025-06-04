@@ -1,3 +1,4 @@
+using api.Models;
 using shared.Models;
 
 namespace api.Services;
@@ -8,4 +9,6 @@ internal interface IDeviceService
   public Task<DeviceReport?> RebootDevice(uint id);
   public Task<DeviceReport[]> GetAllDeviceStatuses();
   public Task<DeviceReport[]> RebootAllDevices();
+  public Task<bool> AddDevice(Device device);
+  public Task<bool> UpdateDevice(Device device);
 }
