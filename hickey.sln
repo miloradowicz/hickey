@@ -3,11 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "api", "api\api.csproj", "{F0DC2BA2-9B59-40B0-A3B4-6473CFBDE374}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "shared", "shared\shared.csproj", "{6DBD865D-6C26-44A5-AB6E-6209DE6D4D42}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "bot", "bot\bot.csproj", "{CF7FBB77-E1C0-4A4E-B1A2-E09575AE76EC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "app", "app\app.csproj", "{F0DC2BA2-9B59-40B0-A3B4-6473CFBDE374}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
