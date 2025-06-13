@@ -3,12 +3,17 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace app.Models;
 
-[SetsRequiredMembers]
-internal class DeviceBase(string name, string address, ushort port)
+internal class DeviceBase
 {
-  public required string Name { get; set; } = name;
-  public required string Address { get; set; } = address;
-  public required ushort Port { get; set; } = port;
+  [SetsRequiredMembers]
+  public DeviceBase(string name, string address, ushort port)
+  {
+    (this.Name, this.Address, this.Port) = (name, address, port);
+  }
+
+  public required string Name { get; set; }
+  public required string Address { get; set; }
+  public required ushort Port { get; set; }
 
   public void Deconstruct(out string Name, out string Address, out ushort Port)
   {

@@ -5,7 +5,7 @@ internal enum DeviceOperationResultCode
   DeviceAdded,
   DeviceUpdated,
   DeviceRemoved,
-  DeviceExists,
+  DeviceAlreadyExists,
   DeviceNotFound,
   StatusReceived,
   RebootRequested,

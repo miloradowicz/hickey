@@ -137,7 +137,7 @@ internal partial class DeviceService(
   {
     if (await this.context.Devices.FirstOrDefaultAsync(x => x.Address == device.Address && x.Port == device.Port) is not null)
     {
-      return new DeviceOperationResult(DeviceOperationResultCode.DeviceExists, device);
+      return new DeviceOperationResult(DeviceOperationResultCode.DeviceAlreadyExists, device);
     }
 
     Device newDevice = new(device, credentials);
@@ -160,7 +160,7 @@ internal partial class DeviceService(
   {
     if (await this.context.Devices.FirstOrDefaultAsync(x => x.Address == device.Address && x.Port == device.Port) is not null)
     {
-      return new DeviceOperationResult(DeviceOperationResultCode.DeviceExists, device);
+      return new DeviceOperationResult(DeviceOperationResultCode.DeviceAlreadyExists, device);
     }
 
     var existingDevice = await this.context.Devices.FirstOrDefaultAsync(x => x.Id == id);
@@ -187,20 +187,20 @@ internal partial class DeviceService(
 
   public async Task<DeviceOperationResult> RemoveDevice(uint id)
   {
-    var device = await this.context.Devices.FirstOrDefaultAsync(x => x.Id == id);
+    var existingDevice = await this.context.Devices.FirstOrDefaultAsync(x => x.Id == id);
 
-    if (device is null)
+    if (existingDevice is null)
     {
       return new DeviceOperationResult(DeviceOperationResultCode.DeviceNotFound);
     }
 
-    this.context.Devices.Remove(device);
+    this.context.Devices.Remove(existingDevice);
 
     try
     {
       await this.context.SaveChangesAsync();
 
-      return new DeviceOperationResult(DeviceOperationResultCode.DeviceAdded, device);
+      return new DeviceOperationResult(DeviceOperationResultCode.DeviceAdded, existingDevice);
     }
     catch (DbUpdateException)
     {

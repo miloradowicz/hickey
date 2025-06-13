@@ -7,5 +7,5 @@ internal class HickeyContext(DbContextOptions<HickeyContext> options) : DbContex
   public DbSet<Device> Devices { get; init; }
   public DbSet<User> Users { get; init; }
   public DbSet<Configuration> Configuration { get; init; }
-  public DbSet<DialogState> DialogState { get; init; }
+  public DbSet<DialogState> DialogStates { get; init; }
 }

@@ -1,17 +1,23 @@
 using Microsoft.EntityFrameworkCore;
-using api.Models;
-using api.Services;
+using app.Models;
+using app.Services;
 using Microsoft.AspNetCore.Mvc;
-using shared.Endpoints;
+using Telegram.Bot;
+using Telegram.Bot.Types;
+using System.Text.RegularExpressions;
+using Npgsql.Replication;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var botConfig = builder.Configuration.GetRequiredSection("Bot").Get<BotConfiguration>()!;
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<ApiContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
+builder.Services.AddHttpClient("tg-bot").AddTypedClient(httpClient => new TelegramBotClient(botConfig.Token, httpClient));
+builder.Services.AddDbContext<HickeyContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
 builder.Services.AddScoped<IDeviceClientFactory, DeviceClientFactory>();
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 
@@ -27,76 +33,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet($"/{ApiEndpoint.Status}", async (IDeviceService deviceService) =>
-{
-  return await deviceService.GetAllDeviceStatuses();
-});
-
-app.MapGet($"/{ApiEndpoint.Status}/{{id}}", async ([FromRoute] uint id, IDeviceService deviceService) =>
-{
-  var result = await deviceService.GetDeviceStatus(id);
-
-  return result is not null
-    ? Results.Ok(result)
-    : Results.NotFound("No device with such id.");
-});
-
-app.MapPut($"/{ApiEndpoint.Reboot}", async (IDeviceService deviceService) =>
-{
-  return await deviceService.RebootAllDevices();
-});
-
-app.MapPut($"/{ApiEndpoint.Reboot}/{{id}}", async ([FromRoute] uint id, IDeviceService deviceService) =>
-{
-  var result = await deviceService.RebootDevice(id);
-
-  return result is not null
-    ? Results.Ok(result)
-    : Results.NotFound("No device with such id.");
-});
-
-app.MapGet("/weatherforecast", () =>
-{
-  var forecast = Enumerable.Range(1, 5).Select(index =>
-    new WeatherForecast
-    (
-        DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-        Random.Shared.Next(-20, 55),
-        summaries[Random.Shared.Next(summaries.Length)]
-    ))
-    .ToArray();
-  return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
-
-app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-  public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
-
-
-/////////////////////////////////////
-
-var botConfig = builder.Configuration.GetRequiredSection("Bot").Get<BotConfiguration>()!;
-var apiConfig = builder.Configuration.GetRequiredSection("Api").Get<ApiConfiguration>()!;
-
-builder.Services.AddHttpClient("tg-bot").AddTypedClient(httpClient => new TelegramBotClient(botConfig.Token, httpClient));
-builder.Services.AddHttpClient("api-client").ConfigureHttpClient((httpClient) =>
-{
-  httpClient.BaseAddress = apiConfig.Url;
-});
-
-
-
 app.MapGet("/set-hook", OnSetHook);
+app.MapGet("/on-schedule", OnSchedule);
 app.MapPost("/on-update", OnUpdate);
 
 app.Run();
@@ -113,14 +51,89 @@ async Task<string> OnSetHook([FromServices] ITelegramBotClient bot)
   return "Webhook has not been updated.";
 }
 
-async void OnUpdate([FromBody] Update update, [FromServices] ITelegramBotClient bot)
+async Task OnSchedule([FromServices] IDeviceService deviceService)
+{
+  await deviceService.RebootAllDevices();
+}
+
+async Task OnUpdate(
+  [FromBody] Update update,
+  [FromServices] IDeviceService deviceService,
+  [FromServices] IUserService userService,
+  [FromServices] ITelegramBotClient bot
+  )
 {
   if (update.Message is null) return;
   if (update.Message.Text is null) return;
+  if (update.Message.From is null) return;
 
   var msg = update.Message;
+  var user = msg.From;
 
-  Console.WriteLine($"Received message '{msg.Text}' in {msg.Chat}");
+  if (userService.FindUserByTelegramId(user.Id) is null)
+  {
+    if (msg.Text == "/addme")
+    {
+      await bot.SendMessage(msg.Chat, "Someone will review your request.");
 
-  await bot.SendMessage(msg.Chat, $"{msg.From} said: {msg.Text}");
+    }
+    else
+    {
+      await bot.SendMessage(msg.Chat, "Unauthorized.");
+    }
+  }
+
+  var messageRegex = new Regex(@"^(?<command>/status|/reboot)(?<arg>\d+)");
+  var match = messageRegex.Match(msg.Text);
+  if (match.Success)
+  {
+    uint arg;
+    if (!uint.TryParse(match.Groups["arg"].Value, out arg))
+    {
+      await bot.SendMessage(msg.Chat, "Invalid argument.");
+    }
+
+    switch (match.Groups["command"].Value)
+    {
+      case "/status":
+        if (arg == 0)
+        {
+          List<Task<DeviceStatusOperationResult>> requests = [];
+          var results = await deviceService.GetAllDeviceStatuses();
+
+          await bot.SendMessage(msg.Chat, string.Join('\n', from r in results select $"{r.Device?.Name ?? "unknown device"}: {r.Result}"));
+        }
+        else
+        {
+          var result = await deviceService.GetDeviceStatus(arg);
+
+          await bot.SendMessage(msg.Chat, $"{result.Device?.Name ?? "unknown device"} - {result.Result}");
+        }
+        break;
+
+      case "/reboot":
+        if (arg == 0)
+        {
+          List<Task<DeviceStatusOperationResult>> requests = [];
+          var results = await deviceService.RebootAllDevices();
+
+          await bot.SendMessage(msg.Chat, string.Join('\n', from r in results select $"{r.Device?.Name ?? "unknown device"}: {r.Result}"));
+        }
+        else
+        {
+          var result = await deviceService.RebootDevice(arg);
+
+          await bot.SendMessage(msg.Chat, $"{result.Device?.Name ?? "unknown device"} - {result.Result}");
+        }
+        break;
+    }
+  }
 }
+
+/////////////////////////////////////
+
+
+
+
+
+

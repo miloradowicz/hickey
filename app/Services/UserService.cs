@@ -7,36 +7,89 @@ internal class UserService(HickeyContext context) : IUserService
 {
   private readonly HickeyContext context = context;
 
-  async Task<UserOperationResult> IUserService.AddUser(User user)
+  public async Task<UserOperationResult> AddUser(User user)
   {
-    if (await this.context.Users.FirstOrDefaultAsync(x => x.TelegramId == user.TelegramId || x.TelegramUsername == user.TelegramUsername) is not null)
+    if (await this.context.Users.FirstOrDefaultAsync(x => x.TelegramId == user.TelegramId) is not null)
     {
-      return new UserOperationResult(UserOperationResultCode.UserExists, user);
+      return new UserOperationResult(UserOperationResultCode.UserAlreadyExists, user);
     }
 
     User newUser = new(user);
 
-    await this.context.Devices.AddAsync(newUser);
+    await this.context.Users.AddAsync(newUser);
 
     try
     {
       await this.context.SaveChangesAsync();
 
-      return new DeviceOperationResult(DeviceOperationResultCode.DeviceAdded, newUser);
+      return new UserOperationResult(UserOperationResultCode.UserAdded, newUser);
     }
     catch (DbUpdateException)
     {
-      return new DeviceOperationResult(DeviceOperationResultCode.OperationFailed);
+      return new UserOperationResult(UserOperationResultCode.OperationFailed);
     }
   }
 
-  Task<UserOperationResult> IUserService.RemoveUser(uint id)
+  public async Task<UserOperationResult> UpdateUser(uint id, User user)
   {
-    throw new NotImplementedException();
+    if (await this.context.Users.FirstOrDefaultAsync(x => x.TelegramId == user.TelegramId) is not null)
+    {
+      return new UserOperationResult(UserOperationResultCode.UserAlreadyExists, user);
+    }
+
+    var existingUser = await this.context.Users.FirstOrDefaultAsync(x => x.Id == id);
+
+    if (existingUser is null)
+    {
+      return new UserOperationResult(UserOperationResultCode.UserNotFound);
+    }
+
+    (existingUser.Name, existingUser.TelegramId) = user;
+
+    try
+    {
+      await this.context.SaveChangesAsync();
+
+      return new UserOperationResult(UserOperationResultCode.UserUpdated, existingUser);
+    }
+    catch (DbUpdateException)
+    {
+      return new UserOperationResult(UserOperationResultCode.OperationFailed);
+    }
   }
 
-  Task<UserOperationResult> IUserService.UpdateUser(uint id, User user)
+  public async Task<UserOperationResult> RemoveUser(uint id)
   {
-    throw new NotImplementedException();
+    var existingUser = await this.context.Users.FirstOrDefaultAsync(x => x.Id == id);
+
+    if (existingUser is null)
+    {
+      return new UserOperationResult(UserOperationResultCode.UserNotFound);
+    }
+
+    this.context.Users.Remove(existingUser);
+
+    try
+    {
+      await this.context.SaveChangesAsync();
+
+      return new UserOperationResult(UserOperationResultCode.UserAdded, existingUser);
+    }
+    catch (DbUpdateException)
+    {
+      return new UserOperationResult(UserOperationResultCode.OperationFailed);
+    }
+  }
+
+  public async Task<User?> FindUserByTelegramId(long telegramId)
+  {
+    var existingUser = await this.context.Users.FirstOrDefaultAsync(x => x.TelegramId == telegramId);
+
+    if (existingUser is null)
+    {
+      return null;
+    }
+
+    return existingUser;
   }
 }

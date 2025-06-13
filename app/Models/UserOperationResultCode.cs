@@ -5,7 +5,7 @@ internal enum UserOperationResultCode
   UserAdded,
   UserUpdated,
   UserRemoved,
-  UserExists,
+  UserAlreadyExists,
   UserNotFound,
   OperationFailed
 }
